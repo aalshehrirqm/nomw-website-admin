@@ -1,0 +1,88 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
+import { InvestmentOpportunitiesService } from './investment-opportunities.service';
+import { CreateInvestmentOpportunityDto } from './dto/create-investment-opportunity.dto';
+import { UpdateInvestmentOpportunityDto } from './dto/update-investment-opportunity.dto';
+import { QueryInvestmentOpportunityDto } from './dto/query-investment-opportunity.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
+import { MongoIdDto } from '../../../common/dto/mongo-id.dto';
+
+@Controller({ path: 'investment-opportunities', version: '1' })
+export class InvestmentOpportunitiesController {
+  constructor(
+    private readonly investmentOpportunitiesService: InvestmentOpportunitiesService,
+  ) {}
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'content_manager')
+  create(
+    @Body() createDto: CreateInvestmentOpportunityDto,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.investmentOpportunitiesService.create(createDto, userId);
+  }
+
+  @Get()
+  findAll(@Query() queryDto: QueryInvestmentOpportunityDto) {
+    return this.investmentOpportunitiesService.findAll(queryDto);
+  }
+
+  @Get('active')
+  findActive(@Query() queryDto: QueryInvestmentOpportunityDto) {
+    return this.investmentOpportunitiesService.findActive(queryDto);
+  }
+
+  @Get('category/:category')
+  findByCategory(@Param('category') category: string) {
+    return this.investmentOpportunitiesService.findByCategory(category);
+  }
+
+  @Get(':id')
+  findOne(@Param() params: MongoIdDto) {
+    return this.investmentOpportunitiesService.findOne(params.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'content_manager')
+  update(
+    @Param() params: MongoIdDto,
+    @Body() updateDto: UpdateInvestmentOpportunityDto,
+  ) {
+    return this.investmentOpportunitiesService.update(params.id, updateDto);
+  }
+
+  @Patch(':id/toggle-active')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'content_manager')
+  toggleActive(@Param() params: MongoIdDto) {
+    return this.investmentOpportunitiesService.toggleActive(params.id);
+  }
+
+  @Patch(':id/status/:status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'content_manager')
+  updateStatus(@Param() params: MongoIdDto, @Param('status') status: string) {
+    return this.investmentOpportunitiesService.updateStatus(params.id, status);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  remove(@Param() params: MongoIdDto) {
+    return this.investmentOpportunitiesService.remove(params.id);
+  }
+}

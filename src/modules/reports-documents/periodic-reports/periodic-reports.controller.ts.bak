@@ -1,0 +1,178 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+  UseInterceptors,
+  UploadedFiles,
+} from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { PeriodicReportsService } from './periodic-reports.service';
+import { CreatePeriodicReportDto } from './dto/create-periodic-report.dto';
+import { UpdatePeriodicReportDto } from './dto/update-periodic-report.dto';
+import { QueryPeriodicReportDto } from './dto/query-periodic-report.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
+import { MongoIdDto } from '../../../common/dto/mongo-id.dto';
+
+@Controller({ path: 'periodic-reports', version: '1' })
+export class PeriodicReportsController {
+  constructor(
+    private readonly periodicReportsService: PeriodicReportsService,
+  ) { }
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'content_manager')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'fileAr', maxCount: 1 },
+      { name: 'fileEn', maxCount: 1 }
+    ], {
+      storage: diskStorage({
+        destination: './uploads/reports',
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const lang = file.fieldname === 'fileAr' ? 'ar' : 'en';
+          cb(null, `report-${lang}-${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype === 'application/pdf') {
+          cb(null, true);
+        } else {
+          cb(new Error('Only PDF files are allowed'), false);
+        }
+      },
+    }),
+  )
+  create(
+    @Body() createDto: CreatePeriodicReportDto,
+    @GetUser('userId') userId: string,
+    @UploadedFiles() files: { fileAr?: Express.Multer.File[], fileEn?: Express.Multer.File[] },
+  ) {
+    // Save only relative paths - schema toJSON will add the base URL
+    const fileUrlAr = files?.fileAr?.[0]
+      ? `/uploads/reports/${files.fileAr[0].filename}`
+      : createDto.fileUrlAr;
+
+    const fileUrlEn = files?.fileEn?.[0]
+      ? `/uploads/reports/${files.fileEn[0].filename}`
+      : createDto.fileUrlEn;
+
+    // Fallback: if only one file provided, use it for both languages
+    const finalFileUrlAr = fileUrlAr || fileUrlEn || createDto.fileUrl;
+    const finalFileUrlEn = fileUrlEn || fileUrlAr || createDto.fileUrl;
+
+    return this.periodicReportsService.create({
+      ...createDto,
+      fileUrl: finalFileUrlAr, // For backward compatibility
+      fileUrlAr: finalFileUrlAr,
+      fileUrlEn: finalFileUrlEn
+    }, userId);
+  }
+
+  @Get()
+  findAll(@Query() queryDto: QueryPeriodicReportDto) {
+    return this.periodicReportsService.findAll(queryDto);
+  }
+
+  @Get('active')
+  findActive(@Query() queryDto: QueryPeriodicReportDto) {
+    return this.periodicReportsService.findActive(queryDto);
+  }
+
+  @Get('type/:type')
+  findByType(
+    @Param('type') type: string,
+    @Query() queryDto: QueryPeriodicReportDto,
+  ) {
+    return this.periodicReportsService.findByType(type, queryDto);
+  }
+
+  @Get(':id')
+  findOne(@Param() params: MongoIdDto) {
+    return this.periodicReportsService.findOne(params.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'content_manager')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'fileAr', maxCount: 1 },
+      { name: 'fileEn', maxCount: 1 }
+    ], {
+      storage: diskStorage({
+        destination: './uploads/reports',
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const lang = file.fieldname === 'fileAr' ? 'ar' : 'en';
+          cb(null, `report-${lang}-${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype === 'application/pdf') {
+          cb(null, true);
+        } else {
+          cb(new Error('Only PDF files are allowed'), false);
+        }
+      },
+    }),
+  )
+  update(
+    @Param() params: MongoIdDto,
+    @Body() updateDto: UpdatePeriodicReportDto,
+    @UploadedFiles() files?: { fileAr?: Express.Multer.File[], fileEn?: Express.Multer.File[] },
+  ) {
+    // Save only relative paths - schema toJSON will add the base URL
+    if (files?.fileAr?.[0]) {
+      updateDto.fileUrlAr = `/uploads/reports/${files.fileAr[0].filename}`;
+      updateDto.fileUrl = updateDto.fileUrlAr; // For backward compatibility
+    }
+
+    if (files?.fileEn?.[0]) {
+      updateDto.fileUrlEn = `/uploads/reports/${files.fileEn[0].filename}`;
+      if (!updateDto.fileUrl) {
+        updateDto.fileUrl = updateDto.fileUrlEn; // For backward compatibility
+      }
+    }
+
+    return this.periodicReportsService.update(params.id, updateDto);
+  }
+
+  @Patch(':id/toggle-active')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'content_manager')
+  toggleActive(@Param() params: MongoIdDto) {
+    return this.periodicReportsService.toggleActive(params.id);
+  }
+
+  @Patch(':id/increment-download')
+  incrementDownloadCount(@Param() params: MongoIdDto) {
+    return this.periodicReportsService.incrementDownloadCount(params.id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  remove(@Param() params: MongoIdDto) {
+    return this.periodicReportsService.remove(params.id);
+  }
+
+  @Delete()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  bulkDelete(@Body() body: { ids: string[] }) {
+    return this.periodicReportsService.bulkDelete(body.ids);
+  }
+}

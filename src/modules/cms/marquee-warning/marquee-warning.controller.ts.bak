@@ -1,0 +1,70 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
+import { MarqueeWarningService } from './marquee-warning.service';
+import { CreateMarqueeWarningDto } from './dto/create-marquee-warning.dto';
+import { UpdateMarqueeWarningDto } from './dto/update-marquee-warning.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
+
+@Controller({ path: 'marquee-warning', version: '1' })
+export class MarqueeWarningController {
+  constructor(private readonly marqueeWarningService: MarqueeWarningService) { }
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super_admin')
+  create(@Body() createDto: CreateMarqueeWarningDto, @Request() req) {
+    return this.marqueeWarningService.create(createDto, req.user.userId);
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super_admin')
+  findAll() {
+    return this.marqueeWarningService.findAll();
+  }
+
+  @Get('active')
+  findActive() {
+    return this.marqueeWarningService.findActive();
+  }
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super_admin')
+  findOne(@Param('id') id: string) {
+    return this.marqueeWarningService.findOne(id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super_admin')
+  update(@Param('id') id: string, @Body() updateDto: UpdateMarqueeWarningDto) {
+    return this.marqueeWarningService.update(id, updateDto);
+  }
+
+  @Patch(':id/toggle-active')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super_admin')
+  toggleActive(@Param('id') id: string) {
+    return this.marqueeWarningService.toggleActive(id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super_admin')
+  delete(@Param('id') id: string) {
+    return this.marqueeWarningService.delete(id);
+  }
+}

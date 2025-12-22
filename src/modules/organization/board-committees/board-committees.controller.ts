@@ -1,0 +1,115 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
+import { BoardCommitteesService } from './board-committees.service';
+import { BoardCommitteesSectionService } from './board-committees-section.service';
+import { CreateBoardCommitteeDto } from './dto/create-board-committee.dto';
+import { UpdateBoardCommitteeDto } from './dto/update-board-committee.dto';
+import { CreateBoardCommitteesSectionDto } from './dto/create-board-committees-section.dto';
+import { UpdateBoardCommitteesSectionDto } from './dto/update-board-committees-section.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { UserRole } from 'src/database/schemas/user.schema';
+import { AllowedTo } from '../../auth/decorators/roles.decorator';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
+import { MongoIdDto } from '../../../common/dto/mongo-id.dto';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
+
+@Controller({ path: 'board-committees', version: '1' })
+export class BoardCommitteesController {
+  constructor(
+    private readonly boardCommitteesService: BoardCommitteesService,
+    private readonly sectionService: BoardCommitteesSectionService,
+  ) {}
+
+  // ========== Committee Routes ==========
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  create(
+    @Body() createDto: CreateBoardCommitteeDto,
+    @GetUser('id') userId: string,
+  ) {
+    return this.boardCommitteesService.create(createDto, userId);
+  }
+
+  @Get()
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.boardCommitteesService.findAll(paginationDto);
+  }
+
+  @Get('active')
+  findActive() {
+    return this.boardCommitteesService.findActive();
+  }
+
+  @Get(':id')
+  findOne(@Param() params: MongoIdDto) {
+    return this.boardCommitteesService.findOne(params.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  update(
+    @Param() params: MongoIdDto,
+    @Body() updateDto: UpdateBoardCommitteeDto,
+  ) {
+    return this.boardCommitteesService.update(params.id, updateDto);
+  }
+
+  @Patch(':id/toggle-active')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  toggleActive(@Param() params: MongoIdDto) {
+    return this.boardCommitteesService.toggleActive(params.id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN)
+  remove(@Param() params: MongoIdDto) {
+    return this.boardCommitteesService.remove(params.id);
+  }
+
+  // ========== Section Content Routes ==========
+  @Get('section/content')
+  getSectionContent() {
+    return this.sectionService.getOrCreate();
+  }
+
+  @Post('section/content')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  createSection(
+    @Body() createDto: CreateBoardCommitteesSectionDto,
+    @GetUser('id') userId: string,
+  ) {
+    return this.sectionService.create(createDto, userId);
+  }
+
+  @Patch('section/content/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  updateSection(
+    @Param() params: MongoIdDto,
+    @Body() updateDto: UpdateBoardCommitteesSectionDto,
+  ) {
+    return this.sectionService.update(params.id, updateDto);
+  }
+
+  @Patch('section/content/:id/toggle-active')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  toggleSectionActive(@Param() params: MongoIdDto) {
+    return this.sectionService.toggleActive(params.id);
+  }
+}

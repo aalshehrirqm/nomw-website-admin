@@ -1,0 +1,72 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
+import { BoardMembersService } from './board-members.service';
+import { CreateBoardMemberDto } from './dto/create-board-member.dto';
+import { UpdateBoardMemberDto } from './dto/update-board-member.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { UserRole } from 'src/database/schemas/user.schema';
+import { AllowedTo } from '../../auth/decorators/roles.decorator';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
+import { MongoIdDto } from '../../../common/dto/mongo-id.dto';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
+
+@Controller({ path: 'board-members', version: '1' })
+export class BoardMembersController {
+  constructor(private readonly boardMembersService: BoardMembersService) {}
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  create(
+    @Body() createDto: CreateBoardMemberDto,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.boardMembersService.create(createDto, userId);
+  }
+
+  @Get()
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.boardMembersService.findAll(paginationDto);
+  }
+
+  @Get('active')
+  findActive() {
+    return this.boardMembersService.findActive();
+  }
+
+  @Get(':id')
+  findOne(@Param() params: MongoIdDto) {
+    return this.boardMembersService.findOne(params.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  update(@Param() params: MongoIdDto, @Body() updateDto: UpdateBoardMemberDto) {
+    return this.boardMembersService.update(params.id, updateDto);
+  }
+
+  @Patch(':id/toggle-active')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  toggleActive(@Param() params: MongoIdDto) {
+    return this.boardMembersService.toggleActive(params.id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN)
+  remove(@Param() params: MongoIdDto) {
+    return this.boardMembersService.remove(params.id);
+  }
+}

@@ -1,0 +1,69 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
+import { VisionService } from './vision.service';
+import { CreateVisionDto } from './dto/create-vision.dto';
+import { UpdateVisionDto } from './dto/update-vision.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { UserRole } from 'src/database/schemas/user.schema';
+import { AllowedTo } from '../../auth/decorators/roles.decorator';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
+import { MongoIdDto } from '../../../common/dto/mongo-id.dto';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
+
+@Controller({ path: 'vision', version: '1' })
+export class VisionController {
+  constructor(private readonly visionService: VisionService) { }
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER, UserRole.EDITOR)
+  create(@Body() createDto: CreateVisionDto, @GetUser('id') userId: string) {
+    return this.visionService.create(createDto, userId);
+  }
+
+  @Get()
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.visionService.findAll(paginationDto);
+  }
+
+  @Get('active')
+  findActive() {
+    return this.visionService.findActive();
+  }
+
+  @Get(':id')
+  findOne(@Param() params: MongoIdDto) {
+    return this.visionService.findOne(params.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER, UserRole.EDITOR)
+  update(@Param() params: MongoIdDto, @Body() updateDto: UpdateVisionDto) {
+    return this.visionService.update(params.id, updateDto);
+  }
+
+  @Patch(':id/toggle-active')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER, UserRole.EDITOR)
+  toggleActive(@Param() params: MongoIdDto) {
+    return this.visionService.toggleActive(params.id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN)
+  remove(@Param() params: MongoIdDto) {
+    return this.visionService.remove(params.id);
+  }
+}

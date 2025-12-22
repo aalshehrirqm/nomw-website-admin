@@ -1,0 +1,118 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { ManagementTeamService } from './management-team.service';
+import { CreateManagementTeamDto } from './dto/create-management-team.dto';
+import { UpdateManagementTeamDto } from './dto/update-management-team.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
+import { MongoIdDto } from '../../../common/dto/mongo-id.dto';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
+
+@Controller({ path: 'management-team', version: '1' })
+export class ManagementTeamController {
+  constructor(private readonly managementTeamService: ManagementTeamService) { }
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'content_manager')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: './uploads/management-team',
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, `member-${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
+          return cb(new Error('Only image files are allowed!'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  create(
+    @Body() createDto: CreateManagementTeamDto,
+    @GetUser('id') userId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.managementTeamService.create(createDto, userId, file);
+  }
+
+  @Get()
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.managementTeamService.findAll(paginationDto);
+  }
+
+  @Get('active')
+  findActive() {
+    return this.managementTeamService.findActive();
+  }
+
+  @Get(':id')
+  findOne(@Param() params: MongoIdDto) {
+    return this.managementTeamService.findOne(params.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'content_manager')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: './uploads/management-team',
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, `member-${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
+          return cb(new Error('Only image files are allowed!'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  update(
+    @Param() params: MongoIdDto,
+    @Body() updateDto: UpdateManagementTeamDto,
+    @GetUser('userId') userId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.managementTeamService.update(params.id, updateDto, userId, file);
+  }
+
+  @Patch(':id/toggle-active')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'content_manager')
+  toggleActive(@Param() params: MongoIdDto) {
+    return this.managementTeamService.toggleActive(params.id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  remove(@Param() params: MongoIdDto, @GetUser('userId') userId: string) {
+    return this.managementTeamService.remove(params.id, userId);
+  }
+}

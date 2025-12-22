@@ -1,0 +1,43 @@
+trigger:
+ - dev
+pr:
+ - dev
+
+pool: "135.181.130.165"
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '20.x'
+    displayName: 'Install Node.js'
+
+  - script: |
+      npm ci --omit=dev
+      npm run build
+    displayName: 'Install dependencies and build'
+
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: '$(Build.SourcesDirectory)'
+      Contents: |
+        uploads/**
+        dist/**
+        package.json
+        package-lock.json
+        node_modules/** 
+      TargetFolder: '/var/www/nomw-site/backend'
+      CleanTargetFolder: true
+    displayName: 'Copy from $(Build.SourcesDirectory) to backend directory'
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: '/var/www/nomw-site/'
+      Contents: .env
+      TargetFolder: '/var/www/nomw-site/backend'
+      CleanTargetFolder: false
+    displayName: 'Copy environment file from to backend directory'
+
+  - script: |
+      cd /var/www/nomw-site/backend
+      pm2 start dist/main.js --name nomw-api
+      pm2 save
+    displayName: 'Restart backend with pm2'

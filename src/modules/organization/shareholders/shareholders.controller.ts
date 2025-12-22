@@ -1,0 +1,72 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
+import { ShareholdersService } from './shareholders.service';
+import { CreateShareholderDto } from './dto/create-shareholder.dto';
+import { UpdateShareholderDto } from './dto/update-shareholder.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { UserRole } from 'src/database/schemas/user.schema';
+import { AllowedTo } from '../../auth/decorators/roles.decorator';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
+import { MongoIdDto } from '../../../common/dto/mongo-id.dto';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
+
+@Controller({ path: 'shareholders', version: '1' })
+export class ShareholdersController {
+  constructor(private readonly shareholdersService: ShareholdersService) {}
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  create(
+    @Body() createDto: CreateShareholderDto,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.shareholdersService.create(createDto, userId);
+  }
+
+  @Get()
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.shareholdersService.findAll(paginationDto);
+  }
+
+  @Get('active')
+  findActive() {
+    return this.shareholdersService.findActive();
+  }
+
+  @Get(':id')
+  findOne(@Param() params: MongoIdDto) {
+    return this.shareholdersService.findOne(params.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  update(@Param() params: MongoIdDto, @Body() updateDto: UpdateShareholderDto) {
+    return this.shareholdersService.update(params.id, updateDto);
+  }
+
+  @Patch(':id/toggle-active')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  toggleActive(@Param() params: MongoIdDto) {
+    return this.shareholdersService.toggleActive(params.id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN)
+  remove(@Param() params: MongoIdDto) {
+    return this.shareholdersService.remove(params.id);
+  }
+}

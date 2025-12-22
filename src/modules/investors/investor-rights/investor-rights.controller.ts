@@ -1,0 +1,101 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
+import { InvestorRightsService } from './investor-rights.service';
+import { InvestorsRightsSectionService } from './investors-rights-section.service';
+import { CreateInvestorRightDto } from './dto/create-investor-right.dto';
+import { UpdateInvestorRightDto } from './dto/update-investor-right.dto';
+import { CreateInvestorsRightsSectionDto } from './dto/create-investors-rights-section.dto';
+import { UpdateInvestorsRightsSectionDto } from './dto/update-investors-rights-section.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { UserRole } from 'src/database/schemas/user.schema';
+import { AllowedTo } from '../../auth/decorators/roles.decorator';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
+import { MongoIdDto } from '../../../common/dto/mongo-id.dto';
+
+@Controller({ path: 'investor-rights', version: '1' })
+export class InvestorRightsController {
+  constructor(
+    private readonly rightsService: InvestorRightsService,
+    private readonly sectionService: InvestorsRightsSectionService,
+  ) {}
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  create(
+    @Body() createDto: CreateInvestorRightDto,
+    @GetUser('id') userId: string,
+  ) {
+    return this.rightsService.create(createDto, userId);
+  }
+
+  @Get()
+  findAll() {
+    return this.rightsService.findAll();
+  }
+
+  @Get('active')
+  findActive() {
+    return this.rightsService.findActive();
+  }
+
+  @Get('section/content')
+  getSectionContent() {
+    return this.sectionService.getOrCreate();
+  }
+
+  @Patch('section/content/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  updateSection(
+    @Param() params: MongoIdDto,
+    @Body() updateDto: UpdateInvestorsRightsSectionDto,
+  ) {
+    return this.sectionService.update(params.id, updateDto);
+  }
+
+  @Patch('section/content/:id/toggle-active')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  toggleSectionActive(@Param() params: MongoIdDto) {
+    return this.sectionService.toggleActive(params.id);
+  }
+
+  @Get(':id')
+  findOne(@Param() params: MongoIdDto) {
+    return this.rightsService.findOne(params.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  update(
+    @Param() params: MongoIdDto,
+    @Body() updateDto: UpdateInvestorRightDto,
+  ) {
+    return this.rightsService.update(params.id, updateDto);
+  }
+
+  @Patch(':id/toggle-active')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  toggleActive(@Param() params: MongoIdDto) {
+    return this.rightsService.toggleActive(params.id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN)
+  remove(@Param() params: MongoIdDto) {
+    return this.rightsService.delete(params.id);
+  }
+}

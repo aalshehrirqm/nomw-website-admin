@@ -1,0 +1,75 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
+import { InvestorRightsService } from './investor-rights.service';
+import { CreateInvestorRightsDto } from './dto/create-investor-rights.dto';
+import { UpdateInvestorRightsDto } from './dto/update-investor-rights.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { UserRole } from 'src/database/schemas/user.schema';
+import { AllowedTo } from '../../auth/decorators/roles.decorator';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
+import { MongoIdDto } from '../../../common/dto/mongo-id.dto';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
+
+@Controller({ path: 'investor-rights', version: '1' })
+export class InvestorRightsController {
+  constructor(private readonly investorRightsService: InvestorRightsService) {}
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  create(
+    @Body() createDto: CreateInvestorRightsDto,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.investorRightsService.create(createDto, userId);
+  }
+
+  @Get()
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.investorRightsService.findAll(paginationDto);
+  }
+
+  @Get('active')
+  findActive() {
+    return this.investorRightsService.findActive();
+  }
+
+  @Get(':id')
+  findOne(@Param() params: MongoIdDto) {
+    return this.investorRightsService.findOne(params.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  update(
+    @Param() params: MongoIdDto,
+    @Body() updateDto: UpdateInvestorRightsDto,
+  ) {
+    return this.investorRightsService.update(params.id, updateDto);
+  }
+
+  @Patch(':id/toggle-active')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  toggleActive(@Param() params: MongoIdDto) {
+    return this.investorRightsService.toggleActive(params.id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AllowedTo(UserRole.ADMIN)
+  remove(@Param() params: MongoIdDto) {
+    return this.investorRightsService.remove(params.id);
+  }
+}
