@@ -52,7 +52,7 @@ import { BoardModule } from './modules/board/board.module';
     GovernanceModule,
     BoardModule,
   ],
-  controllers: [AppController, HealthController],
+  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule { }
