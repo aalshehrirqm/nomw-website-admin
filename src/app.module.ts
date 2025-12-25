@@ -1,4 +1,3 @@
-import * as Joi from 'joi';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -20,21 +19,12 @@ import { MarqueeWarningModule } from './modules/cms/marquee-warning/marquee-warn
 import { InvestmentOpportunitiesModule } from './modules/investment-opportunities/investment-opportunities.module';
 import { GovernanceModule } from './modules/governance/governance.module';
 import { BoardModule } from './modules/board/board.module';
-import { HealthController } from './health/health.controller';
-
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      ignoreEnvFile: process.env.NODE_ENV === 'production',
-        validationSchema: Joi.object({
-        NODE_ENV: Joi.string().valid('development', 'production').required(),
-        PORT: Joi.number().optional(),
-        MONGODB_URI: Joi.string().required(),
-        CORS_ORIGINS: Joi.string().required(),
-        JWT_SECRET: Joi.string().required(),
-      }),
+      envFilePath: '.env',
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],

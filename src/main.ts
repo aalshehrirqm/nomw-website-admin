@@ -12,7 +12,7 @@ function parseCsvEnv(name: string): string[] {
     .filter(Boolean);
 }
 
-async function bootstrap() {
+export async function bootstrap() {
   // Ensure upload directories exist before starting the app
   ensureUploadDirectories();
 
@@ -26,9 +26,7 @@ async function bootstrap() {
   // - If not set, we fall back to these values for local/test
   const fallbackOrigins = [
     'https://admin.nomw.test.rqm.sa',
-    'https://nomw.test.rqm.sa',
-    'http://localhost:4200',
-    'http://localhost:49918',
+    'https://nomw.test.rqm.sa'
   ];
 
   const envOrigins = parseCsvEnv('CORS_ORIGINS');
@@ -106,5 +104,7 @@ async function bootstrap() {
     process.exit(0);
   });
 }
-
-bootstrap();
+if (require.main === module) {
+  // Allow requiring bootstrap without auto-start (e.g., from server.js bridge)
+  bootstrap();
+}
